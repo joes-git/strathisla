@@ -80,62 +80,13 @@ class ConturLikelihood(BackendBase):
 
         self.nbins = len(self.data)
 
-        def lam(pars: np.ndarray) -> np.ndarray:
-            """
-            Compute lambda for Main model.
-
-            Args:
-                pars (``np.ndarray``): nuisance parameters
-
-            Returns:
-                ``np.ndarray``:
-                expectation value of the poisson distribution with respect to
-                nuisance parameters.
-            """
-            poisson_counts = (pars[0] * self.signal_yields + self.background_yields)
-            # have 3 nuisance parameters for each bin, so 3N+1 in total for N bins
-            # split the remaining parameters into 3 seperate arrays for signal, background and data uncertainties
-            signal_pars, background_pars, data_pars = np.array_split(pars[1:],3)
-
-            signal_uncertainties = np.sqrt(self.signal_covariance.diagonal())
-            background_uncertainties = np.sqrt(self.background_covariance.diagonal())
-            data_uncertainties = np.sqrt(self.data_covariance.diagonal())
-
-            return poisson_counts + signal_pars*signal_uncertainties + background_pars*background_uncertainties + data_pars*data_uncertainties
-
-        def constraint(pars: np.ndarray) -> np.ndarray:
-            """Compute constraint term"""
-            return self.background_yields * (
-                1 + pars[1:] * np.array(absolute_uncertainties)
-            )
-
-        jac_constr = jacobian(constraint)
-
-        self.constraints = [
-            NonlinearConstraint(constraint, 0.0, np.inf, jac=jac_constr)
-        ]
-
-        self.main_model = MainModel(lam)
-
-        self.constraint_model: ConstraintModel = ConstraintModel(
-            [
-                {
-                    "distribution_type": "normal",
-                    "args": [
-                        np.zeros(len(self.data)),
-                        np.ones(len(self.data)),
-                    ],
-                    "kwargs": {"domain": slice(1, None)},
-                }
-            ]
-        )
-
     @property
     def is_alive(self) -> bool:
         """Returns True if at least one bin has non-zero signal yield."""
         return np.any(self.signal_yields > 0.0)
 
-    def config(self, allow_negative_signal: bool = True, poi_upper_bound: float = 10.0):
+    def config(self, allow_negative_signal: bool = True, poi_upper_bound: float = 10.0
+    ) -> ModelConfig:
         r"""
         Model configuration.
 
@@ -185,3 +136,60 @@ class ConturLikelihood(BackendBase):
             )
         return self._constraint_model
 
+    @property
+    def main_model(self) -> MainModel:
+        """retreive the main model distribution"""
+        if self._main_model is None:
+
+            def lam(pars: np.ndarray) -> np.ndarray:
+                """
+                Compute lambda for Main model.
+
+                Args:
+                    pars (``np.ndarray``): nuisance parameters
+
+                Returns:
+                    ``np.ndarray``:
+                    expectation value of the poisson distribution with respect to
+                    nuisance parameters.
+                """
+                poisson_counts = (pars[0] * self.signal_yields + self.background_yields)
+                # have 3 nuisance parameters for each bin, so 3N+1 in total for N bins
+                # split the remaining parameters into 3 seperate arrays for signal, background and data uncertainties
+                signal_pars, background_pars, data_pars = np.array_split(pars[1:],3)
+
+                signal_uncertainties = np.sqrt(self.signal_covariance.diagonal())
+                background_uncertainties = np.sqrt(self.background_covariance.diagonal())
+                data_uncertainties = np.sqrt(self.data_covariance.diagonal())
+
+                return poisson_counts + signal_pars*signal_uncertainties + background_pars*background_uncertainties + data_pars*data_uncertainties
+
+            def constraint(pars: np.ndarray) -> np.ndarray:
+                """Compute constraint term"""
+                signal_pars, background_pars, data_pars = np.array_split(pars[1:],3)
+
+                signal_uncertainties = np.sqrt(self.signal_covariance.diagonal())
+                background_uncertainties = np.sqrt(self.background_covariance.diagonal())
+                data_uncertainties = np.sqrt(self.data_covariance.diagonal())
+
+                return signal_pars*signal_uncertainties + background_pars*background_uncertainties + data_pars*data_uncertainties
+
+            jac_constr = jacobian(constraint)
+
+            self.constraints.append(
+                NonlinearConstraint(constraint, 0.0, np.inf, jac=jac_constr)
+            )
+
+            if self.signal_uncertainty_configuration.get("lambda", None) is not None:
+                signal_lambda = self.signal_uncertainty_configuration["lambda"]
+
+                def poiss_lamb(pars: np.ndarray) -> np.ndarray:
+                    """combined lambda expression"""
+                    return lam(pars) + signal_lambda(pars)
+
+            else:
+                poiss_lamb = lam
+
+            self._main_model = MainModel(poiss_lamb)
+
+        return self._main_model

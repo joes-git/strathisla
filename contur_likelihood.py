@@ -2,11 +2,13 @@
 
 from scipy.optimize import NonlinearConstraint
 import numpy as np
+from autograd import jacobian, grad
 
 from spey import BackendBase, ExpectationType
 from spey.base.model_config import ModelConfig
 from spey.backends.distributions import ConstraintModel, MainModel
-from autograd import jacobian, grad
+from spey.helper_functions import covariance_to_correlation
+
 
 
 class ConturLikelihood(BackendBase):
@@ -80,8 +82,7 @@ class ConturLikelihood(BackendBase):
 
         def lam(pars: np.ndarray) -> np.ndarray:
             """
-            Compute lambda for Main model with third moment expansion.
-            For details see above eq 2.6 in :xref:`1809.05548`
+            Compute lambda for Main model.
 
             Args:
                 pars (``np.ndarray``): nuisance parameters
@@ -164,146 +165,34 @@ class ConturLikelihood(BackendBase):
             ]
             * len(self.data),
         )
-
-    def get_objective_function(
-        self,
-        expected: ExpectationType = ExpectationType.observed,
-        data: np.ndarray = None,
-        do_grad: bool = True,
-    ):
-        r"""
-        Objective function i.e. twice negative log-likelihood, :math:`-2\log\mathcal{L}(\mu, \theta)`
-
-        Args:
-            expected (~spey.ExpectationType): Sets which values the fitting algorithm should focus and
-              p-values to be computed.
-
-              * :obj:`~spey.ExpectationType.observed`: Computes the p-values with via post-fit
-                prescriotion which means that the experimental data will be assumed to be the truth
-                (default).
-              * :obj:`~spey.ExpectationType.aposteriori`: Computes the expected p-values with via
-                post-fit prescriotion which means that the experimental data will be assumed to be
-                the truth.
-              * :obj:`~spey.ExpectationType.apriori`: Computes the expected p-values with via pre-fit
-                prescription which means that the SM will be assumed to be the truth.
-            data (``np.ndarray``, default ``None``): input data that to fit
-            do_grad (``bool``, default ``True``): If ``True`` return objective and its gradient
-              as ``tuple`` if ``False`` only returns objective function.
-
-        Returns:
-            ``Callable[[np.ndarray], Union[float, Tuple[float, np.ndarray]]]``:
-            Function which takes fit parameters (:math:`\mu` and :math:`\theta`) and returns either
-            objective or objective and its gradient.
-        """
-        current_data = (
-            self.background_yields if expected == ExpectationType.apriori else self.data
-        )
-        data = current_data if data is None else data
-
-        def negative_loglikelihood(pars: np.ndarray) -> np.ndarray:
-            """Compute twice negative log-likelihood"""
-            return -self.main_model.log_prob(
-                pars, data[: len(self.data)]
-            ) - self.constraint_model.log_prob(pars)
-
-        if do_grad:
-            grad_negative_loglikelihood = grad(negative_loglikelihood, argnum=0)
-            return lambda pars: (
-                negative_loglikelihood(pars),
-                grad_negative_loglikelihood(pars),
+    
+    @property
+    def constraint_model(self) -> ConstraintModel:
+        """retreive constraint model distribution"""
+        if self._constraint_model is None:
+            signal_corr = covariance_to_correlation(self.signal_covariance)
+            background_corr = covariance_to_correlation(self.background_covariance)
+            data_corr = covariance_to_correlation(self.data_covariance)
+            # constraint model from each source of uncertainty
+            self._constraint_model = ConstraintModel(
+                [
+                    {
+                        "distribution_type": "multivariatenormal",
+                        "args": [np.zeros(len(self.data)), signal_corr],
+                        "kwargs": {"domain": slice(1, None)},
+                    },
+                    {
+                        "distribution_type": "multivariatenormal",
+                        "args": [np.zeros(len(self.data)), background_corr],
+                        "kwargs": {"domain": slice(1, None)},
+                    },
+                    {
+                        "distribution_type": "multivariatenormal",
+                        "args": [np.zeros(len(self.data)), data_corr],
+                        "kwargs": {"domain": slice(1, None)},
+                    }
+                ]
+                + self.signal_uncertainty_configuration.get("constraint", [])
             )
+        return self._constraint_model
 
-        return negative_loglikelihood
-
-    def get_logpdf_func(
-        self,
-        expected: ExpectationType = ExpectationType.observed,
-        data: np.ndarray = None,
-    ):
-        r"""
-        Generate function to compute :math:`\log\mathcal{L}(\mu, \theta)` where :math:`\mu` is the
-        parameter of interest and :math:`\theta` are nuisance parameters.
-
-        Args:
-            expected (~spey.ExpectationType): Sets which values the fitting algorithm should focus and
-              p-values to be computed.
-
-              * :obj:`~spey.ExpectationType.observed`: Computes the p-values with via post-fit
-                prescriotion which means that the experimental data will be assumed to be the truth
-                (default).
-              * :obj:`~spey.ExpectationType.aposteriori`: Computes the expected p-values with via
-                post-fit prescriotion which means that the experimental data will be assumed to be
-                the truth.
-              * :obj:`~spey.ExpectationType.apriori`: Computes the expected p-values with via pre-fit
-                prescription which means that the SM will be assumed to be the truth.
-            data (``np.array``, default ``None``): input data that to fit
-
-        Returns:
-            ``Callable[[np.ndarray], float]``:
-            Function that takes fit parameters (:math:`\mu` and :math:`\theta`) and computes
-            :math:`\log\mathcal{L}(\mu, \theta)`.
-        """
-        current_data = (
-            self.background_yields if expected == ExpectationType.apriori else self.data
-        )
-        data = current_data if data is None else data
-
-        return lambda pars: self.main_model.log_prob(
-            pars, data[: len(self.data)]
-        ) + self.constraint_model.log_prob(pars)
-
-    def get_sampler(self, pars: np.ndarray):
-        r"""
-        Retreives the function to sample from.
-
-        Args:
-            pars (``np.ndarray``): fit parameters (:math:`\mu` and :math:`\theta`)
-            include_auxiliary (``bool``): wether or not to include auxiliary data
-              coming from the constraint model.
-
-        Returns:
-            ``Callable[[int, bool], np.ndarray]``:
-            Function that takes ``number_of_samples`` as input and draws as many samples
-            from the statistical model.
-        """
-
-        def sampler(sample_size: int, include_auxiliary: bool = True) -> np.ndarray:
-            """
-            Fucntion to generate samples.
-
-            Args:
-                sample_size (``int``): number of samples to be generated.
-                include_auxiliary (``bool``): wether or not to include auxiliary data
-                    coming from the constraint model.
-
-            Returns:
-                ``np.ndarray``:
-                generated samples
-            """
-            sample = self.main_model.sample(pars, sample_size)
-
-            if include_auxiliary:
-                constraint_sample = self.constraint_model.sample(pars[1:], sample_size)
-                sample = np.hstack([sample, constraint_sample])
-
-            return sample
-
-        return sampler
-
-    def expected_data(self, pars: list[float], include_auxiliary: bool = True):
-        r"""
-        Compute the expected value of the statistical model
-
-        Args:
-            pars (``List[float]``): nuisance, :math:`\theta` and parameter of interest,
-              :math:`\mu`.
-
-        Returns:
-            ``List[float]``:
-            Expected data of the statistical model
-        """
-        data = self.main_model.expected_data(pars)
-
-        if include_auxiliary:
-            data = np.hstack([data, self.constraint_model.expected_data()])
-        return data

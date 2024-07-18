@@ -25,7 +25,9 @@ class ConturLikelihood(BackendBase):
         signal_yields (``np.ndarray``): signal yields
         background_yields (``np.ndarray``): background yields
         data (``np.ndarray``): observations
-        absolute_uncertainties (``np.ndarray``): absolute uncertainty values
+        signal_covariance (``np.ndarray``): signal covariance matrix (must be square)
+        background_covariance (``np.ndarray``): background covariance matrix (must be square)
+        data_covariance (``np.ndarray``): data covariance matrix (must be square)
     """
 
     name: str = "contur.full_likelihood"

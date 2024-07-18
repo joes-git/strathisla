@@ -37,7 +37,7 @@ class ConturHistogram(BackendBase):
         data_covariance (``np.ndarray``): data covariance matrix (must be square)
     """
 
-    name: str = "contur.full_likelihood"
+    name: str = "contur.full_histogram_likelihood"
     """Name of the backend"""
     version: str = "1.0.0"
     """Version of the backend"""

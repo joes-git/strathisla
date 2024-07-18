@@ -11,9 +11,10 @@ from spey.helper_functions import covariance_to_correlation
 
 
 
-class ConturLikelihood(BackendBase):
+class ConturHistogram(BackendBase):
     r"""
-    Spey implementation for the likelihood described in arXiv:2102.04377. See eq. 7.
+    Spey implementation for the likelihood for a histogram with correlated uncertainties on the signal, background and data.  
+    Described in arXiv:2102.04377. See eq. 7.
 
     .. math::
 

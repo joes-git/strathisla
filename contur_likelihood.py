@@ -1,13 +1,18 @@
 """Spey implementation for the full Contur likelihood described in arXiv:2102.04377"""
 
-from scipy.optimize import NonlinearConstraint
-import numpy as np
-from autograd import jacobian, grad
+import logging
+from typing import Any, Callable, Dict, List, Optional, Text, Tuple, Union
 
-from spey import BackendBase, ExpectationType
-from spey.base.model_config import ModelConfig
+from autograd import value_and_grad, hessian, jacobian
+from autograd import numpy as np
+from scipy.optimize import NonlinearConstraint
+
+from spey._version import __version__
 from spey.backends.distributions import ConstraintModel, MainModel
+from spey.base import BackendBase, ModelConfig
 from spey.helper_functions import covariance_to_correlation
+from spey.optimizer import fit
+from spey.utils import ExpectationType
 
 
 class ConturHistogram(BackendBase):

@@ -170,28 +170,17 @@ class ConturLikelihood(BackendBase):
     def constraint_model(self) -> ConstraintModel:
         """retreive constraint model distribution"""
         if self._constraint_model is None:
-            signal_corr = covariance_to_correlation(self.signal_covariance)
-            background_corr = covariance_to_correlation(self.background_covariance)
-            data_corr = covariance_to_correlation(self.data_covariance)
-            # constraint model from each source of uncertainty
-            self._constraint_model = ConstraintModel(
-                [
-                    {
-                        "distribution_type": "multivariatenormal",
-                        "args": [np.zeros(len(self.data)), signal_corr],
-                        "kwargs": {"domain": slice(1, None)},
-                    },
-                    {
-                        "distribution_type": "multivariatenormal",
-                        "args": [np.zeros(len(self.data)), background_corr],
-                        "kwargs": {"domain": slice(1, None)},
-                    },
-                    {
-                        "distribution_type": "multivariatenormal",
-                        "args": [np.zeros(len(self.data)), data_corr],
-                        "kwargs": {"domain": slice(1, None)},
-                    }
-                ]
+            # make a pdf description for each source of uncertainty
+            pdf_descs = [ 
+                {
+                    "distribution_type": "multivariatenormal",
+                    "args": [np.zeros(len(self.data)), covariance_to_correlation(cov)],
+                    "kwargs": {"domain": slice(1, None)},
+                }
+                for cov in (self.signal_covariance,self.background_covariance,self.data_covariance)
+            ]
+
+            self._constraint_model = ConstraintModel(pdf_descs
                 + self.signal_uncertainty_configuration.get("constraint", [])
             )
         return self._constraint_model

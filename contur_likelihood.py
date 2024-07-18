@@ -78,6 +78,26 @@ class ConturLikelihood(BackendBase):
         self.background_covariance = background_covariance
         self.data_covariance = data_covariance
 
+        minimum_poi = -np.inf
+        if self.is_alive:
+            minimum_poi = -np.min(
+                self.background_yields[self.signal_yields > 0.0]
+                / self.signal_yields[self.signal_yields > 0.0]
+            )
+        log.debug(f"Min POI set to : {minimum_poi}")
+
+        self._config = ModelConfig(
+            poi_index=0,
+            minimum_poi=minimum_poi,
+            suggested_init=[1.0] * (len(data) + 1)
+            + (signal_uncertainty_configuration is not None)
+            * ([1.0] * len(signal_yields)),
+            suggested_bounds=[(minimum_poi, 10)]
+            + [(None, None)] * len(data)
+            + (signal_uncertainty_configuration is not None)
+            * ([(None, None)] * len(signal_yields)),
+        )
+
     @property
     def is_alive(self) -> bool:
         """Returns True if at least one bin has non-zero signal yield."""
@@ -91,7 +111,7 @@ class ConturLikelihood(BackendBase):
         Args:
             allow_negative_signal (``bool``, default ``True``): If ``True`` :math:`\hat\mu`
               value will be allowed to be negative.
-            poi_upper_bound (``float``, default ``40.0``): upper bound for parameter
+            poi_upper_bound (``float``, default ``10.0``): upper bound for parameter
               of interest, :math:`\mu`.
 
         Returns:
@@ -99,20 +119,14 @@ class ConturLikelihood(BackendBase):
             Model configuration. Information regarding the position of POI in
             parameter list, suggested input and bounds.
         """
-        min_poi = -np.min(
-            self.background_yields[self.signal_yields > 0]
-            / self.signal_yields[self.signal_yields > 0]
-        )
+        if allow_negative_signal and poi_upper_bound == 10.0:
+            return self._config
 
         return ModelConfig(
-            0,
-            min_poi,
-            [1.0] * (len(self.data) + 1),
-            [(min_poi if allow_negative_signal else 0.0, poi_upper_bound)]
-            + [
-                (None, None),
-            ]
-            * len(self.data),
+            self._config.poi_index,
+            self._config.minimum_poi,
+            self._config.suggested_init,
+            [(0, poi_upper_bound)] + self._config.suggested_bounds[1:],
         )
     
     @property
@@ -151,7 +165,7 @@ class ConturLikelihood(BackendBase):
                 """
                 poisson_counts = (pars[0] * self.signal_yields + self.background_yields)
                 # have 3 nuisance parameters for each bin, so 3N+1 in total for N bins
-                # split the remaining parameters into 3 seperate arrays for signal, background and data uncertainties
+                # split the non-poi parameters into 3 seperate arrays for signal, background and data uncertainties
                 signal_pars, background_pars, data_pars = np.array_split(pars[1:],3)
 
                 signal_uncertainties = np.sqrt(self.signal_covariance.diagonal())
@@ -162,6 +176,7 @@ class ConturLikelihood(BackendBase):
 
             def constraint(pars: np.ndarray) -> np.ndarray:
                 """Compute constraint term"""
+                # split the non-poi parameters into 3 seperate arrays for signal, background and data uncertainties
                 signal_pars, background_pars, data_pars = np.array_split(pars[1:],3)
 
                 signal_uncertainties = np.sqrt(self.signal_covariance.diagonal())
@@ -179,3 +194,191 @@ class ConturLikelihood(BackendBase):
             self._main_model = MainModel(lam)
 
         return self._main_model
+
+    def get_objective_function(
+        self,
+        expected: ExpectationType = ExpectationType.observed,
+        data: Optional[np.ndarray] = None,
+        do_grad: bool = True,
+    ) -> Callable[[np.ndarray], Union[Tuple[float, np.ndarray], float]]:
+        r"""
+        Objective function i.e. twice negative log-likelihood, :math:`-2\log\mathcal{L}(\mu, \theta)`
+
+        Args:
+            expected (~spey.ExpectationType): Sets which values the fitting algorithm should focus and
+            p-values to be computed.
+
+            * :obj:`~spey.ExpectationType.observed`: Computes the p-values with via post-fit
+                prescriotion which means that the experimental data will be assumed to be the truth
+                (default).
+            * :obj:`~spey.ExpectationType.aposteriori`: Computes the expected p-values with via
+                post-fit prescriotion which means that the experimental data will be assumed to be
+                the truth.
+            * :obj:`~spey.ExpectationType.apriori`: Computes the expected p-values with via pre-fit
+                prescription which means that the SM will be assumed to be the truth.
+            data (``np.ndarray``, default ``None``): input data that to fit
+            do_grad (``bool``, default ``True``): If ``True`` return objective and its gradient
+            as ``tuple`` if ``False`` only returns objective function.
+
+        Returns:
+            ``Callable[[np.ndarray], Union[float, Tuple[float, np.ndarray]]]``:
+            Function which takes fit parameters (:math:`\mu` and :math:`\theta`) and returns either
+            objective or objective and its gradient.
+        """
+        current_data = (
+            self.background_yields if expected == ExpectationType.apriori else self.data
+        )
+        data = current_data if data is None else data
+        log.debug(f"Data: {data}")
+
+        def negative_loglikelihood(pars: np.ndarray) -> np.ndarray:
+            """Compute twice negative log-likelihood"""
+            return -self.main_model.log_prob(
+                pars, data[: len(self.data)]
+            ) - self.constraint_model.log_prob(pars)
+
+        if do_grad:
+            return value_and_grad(negative_loglikelihood, argnum=0)
+
+        return negative_loglikelihood
+
+    def get_logpdf_func(
+        self,
+        expected: ExpectationType = ExpectationType.observed,
+        data: Optional[np.array] = None,
+    ) -> Callable[[np.ndarray, np.ndarray], float]:
+        r"""
+        Generate function to compute :math:`\log\mathcal{L}(\mu, \theta)` where :math:`\mu` is the
+        parameter of interest and :math:`\theta` are nuisance parameters.
+
+        Args:
+            expected (~spey.ExpectationType): Sets which values the fitting algorithm should focus and
+            p-values to be computed.
+
+            * :obj:`~spey.ExpectationType.observed`: Computes the p-values with via post-fit
+                prescriotion which means that the experimental data will be assumed to be the truth
+                (default).
+            * :obj:`~spey.ExpectationType.aposteriori`: Computes the expected p-values with via
+                post-fit prescriotion which means that the experimental data will be assumed to be
+                the truth.
+            * :obj:`~spey.ExpectationType.apriori`: Computes the expected p-values with via pre-fit
+                prescription which means that the SM will be assumed to be the truth.
+            data (``np.array``, default ``None``): input data that to fit
+
+        Returns:
+            ``Callable[[np.ndarray], float]``:
+            Function that takes fit parameters (:math:`\mu` and :math:`\theta`) and computes
+            :math:`\log\mathcal{L}(\mu, \theta)`.
+        """
+        current_data = (
+            self.background_yields if expected == ExpectationType.apriori else self.data
+        )
+        data = current_data if data is None else data
+        log.debug(f"Data: {data}")
+
+        return lambda pars: self.main_model.log_prob(
+            pars, data[: len(self.data)]
+        ) + self.constraint_model.log_prob(pars)
+
+    def get_hessian_logpdf_func(
+        self,
+        expected: ExpectationType = ExpectationType.observed,
+        data: Optional[np.ndarray] = None,
+    ) -> Callable[[np.ndarray], float]:
+        r"""
+        Currently Hessian of :math:`\log\mathcal{L}(\mu, \theta)` is only used to compute
+        variance on :math:`\mu`. This method returns a callable function which takes fit
+        parameters (:math:`\mu` and :math:`\theta`) and returns Hessian.
+
+        Args:
+            expected (~spey.ExpectationType): Sets which values the fitting algorithm should focus and
+            p-values to be computed.
+
+            * :obj:`~spey.ExpectationType.observed`: Computes the p-values with via post-fit
+                prescriotion which means that the experimental data will be assumed to be the truth
+                (default).
+            * :obj:`~spey.ExpectationType.aposteriori`: Computes the expected p-values with via
+                post-fit prescriotion which means that the experimental data will be assumed to be
+                the truth.
+            * :obj:`~spey.ExpectationType.apriori`: Computes the expected p-values with via pre-fit
+                prescription which means that the SM will be assumed to be the truth.
+            data (``np.ndarray``, default ``None``): input data that to fit
+
+        Returns:
+            ``Callable[[np.ndarray], float]``:
+            Function that takes fit parameters (:math:`\mu` and :math:`\theta`) and
+            returns Hessian of :math:`\log\mathcal{L}(\mu, \theta)`.
+        """
+        current_data = (
+            self.background_yields if expected == ExpectationType.apriori else self.data
+        )
+        data = current_data if data is None else data
+        log.debug(f"Data: {data}")
+
+        def log_prob(pars: np.ndarray) -> np.ndarray:
+            """Compute log-probability"""
+            return self.main_model.log_prob(
+                pars, data[: len(self.data)]
+            ) + self.constraint_model.log_prob(pars)
+
+        return hessian(log_prob, argnum=0)
+
+    def get_sampler(self, pars: np.ndarray) -> Callable[[int], np.ndarray]:
+        r"""
+        Retreives the function to sample from.
+
+        Args:
+            pars (``np.ndarray``): fit parameters (:math:`\mu` and :math:`\theta`)
+            include_auxiliary (``bool``): wether or not to include auxiliary data
+            coming from the constraint model.
+
+        Returns:
+            ``Callable[[int, bool], np.ndarray]``:
+            Function that takes ``number_of_samples`` as input and draws as many samples
+            from the statistical model.
+        """
+
+        def sampler(sample_size: int, include_auxiliary: bool = True) -> np.ndarray:
+            """
+            Fucntion to generate samples.
+
+            Args:
+                sample_size (``int``): number of samples to be generated.
+                include_auxiliary (``bool``): wether or not to include auxiliary data
+                    coming from the constraint model.
+
+            Returns:
+                ``np.ndarray``:
+                generated samples
+            """
+            sample = self.main_model.sample(pars, sample_size)
+
+            if include_auxiliary:
+                constraint_sample = self.constraint_model.sample(pars[1:], sample_size)
+                sample = np.hstack([sample, constraint_sample])
+
+            return sample
+
+        return sampler
+
+    def expected_data(
+        self, pars: List[float], include_auxiliary: bool = True
+    ) -> List[float]:
+        r"""
+        Compute the expected value of the statistical model
+
+        Args:
+            pars (``List[float]``): nuisance, :math:`\theta` and parameter of interest,
+            :math:`\mu`.
+            include_auxiliary (``bool``): wether or not to include auxiliary data
+            coming from the constraint model.
+
+        Returns:
+            ``List[float]``:
+            Expected data of the statistical model
+        """
+        data = self.main_model.expected_data(pars)
+
+        if include_auxiliary:
+            data = np.hstack([data, self.constraint_model.expected_data()])
+        return data

@@ -70,15 +70,13 @@ class ConturLikelihood(BackendBase):
             raise InvalidInput('Covariance matrices size should match the number of yields')
 
         # can assign these now they've been checked
-        self.signal_yields = np.array(signal_yields)
-        self.background_yields = np.array(background_yields)
-        self.data = np.array(data)
+        self.signal_yields = signal_yields
+        self.background_yields = background_yields
+        self.data = data
 
         self.signal_covariance = signal_covariance
         self.background_covariance = background_covariance
         self.data_covariance = data_covariance
-
-        self.nbins = len(self.data)
 
     @property
     def is_alive(self) -> bool:
@@ -131,9 +129,7 @@ class ConturLikelihood(BackendBase):
                 for cov in (self.signal_covariance,self.background_covariance,self.data_covariance)
             ]
 
-            self._constraint_model = ConstraintModel(pdf_descs
-                + self.signal_uncertainty_configuration.get("constraint", [])
-            )
+            self._constraint_model = ConstraintModel(pdf_descs)
         return self._constraint_model
 
     @property
@@ -180,16 +176,6 @@ class ConturLikelihood(BackendBase):
                 NonlinearConstraint(constraint, 0.0, np.inf, jac=jac_constr)
             )
 
-            if self.signal_uncertainty_configuration.get("lambda", None) is not None:
-                signal_lambda = self.signal_uncertainty_configuration["lambda"]
-
-                def poiss_lamb(pars: np.ndarray) -> np.ndarray:
-                    """combined lambda expression"""
-                    return lam(pars) + signal_lambda(pars)
-
-            else:
-                poiss_lamb = lam
-
-            self._main_model = MainModel(poiss_lamb)
+            self._main_model = MainModel(lam)
 
         return self._main_model

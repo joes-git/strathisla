@@ -10,7 +10,6 @@ from spey.backends.distributions import ConstraintModel, MainModel
 from spey.helper_functions import covariance_to_correlation
 
 
-
 class ConturHistogram(BackendBase):
     r"""
     Spey implementation for the likelihood for a histogram with correlated uncertainties on the signal, background and data.  

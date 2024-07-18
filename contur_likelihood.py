@@ -49,10 +49,32 @@ class ConturLikelihood(BackendBase):
         signal_covariance: np.ndarray,
         background_covariance: np.ndarray,
         data_covariance: np.ndarray
-    ):
+    ):  
+        # check all input yields have the same length
+        if len(set((len(yields) for yields in (signal_yields,background_yields,data)))) != 1:
+            raise InvalidInput('Arrays of yields must be the same length')
+
+        # check all covariance matrices are 2D and square
+        for cov in (data_covariance,signal_covariance,background_covariance):
+            if cov.ndim != 2:
+                raise InvalidInput('2D covariance matrix required')
+            if cov.shape[0] != cov.shape[1]:
+                raise InvalidInput('Covariance matrix must be square')
+
+        # check input yields and covariance lengths match
+        if len(data) != data_covariance.shape[0]:
+            raise InvalidInput('Covariance matrices size should match the number of yields')
+
+        # can assign these now they've been checked
         self.signal_yields = np.array(signal_yields)
         self.background_yields = np.array(background_yields)
         self.data = np.array(data)
+
+        self.signal_covariance = signal_covariance
+        self.background_covariance = background_covariance
+        self.data_covariance = data_covariance
+
+        self.nbins = len(self.data)
 
         def lam(pars: np.ndarray) -> np.ndarray:
             """

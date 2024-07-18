@@ -1,4 +1,4 @@
-"""Spey implementation for the likelihood described in arXiv:2007.08526"""
+"""Spey implementation for the full Contur likelihood described in arXiv:2102.04377"""
 
 from scipy.optimize import NonlinearConstraint
 import numpy as np
@@ -9,15 +9,17 @@ from spey.backends.distributions import ConstraintModel, MainModel
 from autograd import jacobian, grad
 
 
-class NeutrinoExperiment(BackendBase):
+class ConturLikelihood(BackendBase):
     r"""
-    Spey implementation for the likelihood described in arXiv:2007.08526. See eq. A2.
+    Spey implementation for the likelihood described in arXiv:2102.04377. See eq. 7.
 
     .. math::
 
-        \mathcal{L}(\mu, \theta) = \left[\prod_{i\in{\rm channels}}\prod_{j_i\in {\rm bins}}
-        {\rm Poiss}(n^j|(\mu n_s^j + n_b^j)(1 + \theta^j\sigma_b^j))\right] \cdot
-        \prod_{k\in{\rm nuis}}\mathcal{N}(\theta^k | 0, 1)
+        L(\mu, \theta) = \prod_{i \in {\rm bins}} 
+        {\rm Poiss} ( n_i \vert \mu s_i+b_i + \sum_{j \in n,s,b} \theta^{(j)}_i \sigma^{(j)}_i)
+        \cdot
+        \prod_{j \in n,s,b} 
+        {\rm Gauss}(\theta^{(j)}|0,\Sigma^{(j)}) 
 
     Args:
         signal_yields (``np.ndarray``): signal yields
@@ -26,17 +28,17 @@ class NeutrinoExperiment(BackendBase):
         absolute_uncertainties (``np.ndarray``): absolute uncertainty values
     """
 
-    name: str = "example.neutrino"
+    name: str = "contur.full_likelihood"
     """Name of the backend"""
     version: str = "1.0.0"
     """Version of the backend"""
-    author: str = "SpeysideHEP"
+    author: str = "Joe Egan (joe.egan.23@ucl.ac.uk)"
     """Author of the backend"""
     spey_requires: str = ">=0.0.1"
     """Spey version required for the backend"""
-    doi: str = "10.1103/PhysRevD.103.013004"
+    doi: str = "10.21468/SciPostPhysCore.4.2.013"
     """Citable DOI for the backend"""
-    arXiv: str = "2007.08526"
+    arXiv: str = "2102.04377"
     """arXiv reference for the backend"""
 
     def __init__(
@@ -44,7 +46,9 @@ class NeutrinoExperiment(BackendBase):
         signal_yields: np.ndarray,
         background_yields: np.ndarray,
         data: np.ndarray,
-        absolute_uncertainties: np.ndarray,
+        signal_covariance: np.ndarray,
+        background_covariance: np.ndarray,
+        data_covariance: np.ndarray
     ):
         self.signal_yields = np.array(signal_yields)
         self.background_yields = np.array(background_yields)

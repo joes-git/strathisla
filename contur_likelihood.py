@@ -91,9 +91,16 @@ class ConturLikelihood(BackendBase):
                 expectation value of the poisson distribution with respect to
                 nuisance parameters.
             """
-            return (pars[0] * self.signal_yields + self.background_yields) * (
-                1 + pars[1:] * np.array(absolute_uncertainties)
-            )
+            poisson_counts = (pars[0] * self.signal_yields + self.background_yields)
+            # have 3 nuisance parameters for each bin, so 3N+1 in total for N bins
+            # split the remaining parameters into 3 seperate arrays for signal, background and data uncertainties
+            signal_pars, background_pars, data_pars = np.array_split(pars[1:],3)
+
+            signal_uncertainties = np.sqrt(self.signal_covariance.diagonal())
+            background_uncertainties = np.sqrt(self.background_covariance.diagonal())
+            data_uncertainties = np.sqrt(self.data_covariance.diagonal())
+
+            return poisson_counts + signal_pars*signal_uncertainties + background_pars*background_uncertainties + data_pars*data_uncertainties
 
         def constraint(pars: np.ndarray) -> np.ndarray:
             """Compute constraint term"""

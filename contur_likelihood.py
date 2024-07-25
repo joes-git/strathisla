@@ -14,6 +14,12 @@ from spey.helper_functions import covariance_to_correlation
 from spey.optimizer import fit
 from spey.utils import ExpectationType
 
+# pylint: disable=E1101,E1120
+log = logging.getLogger("Spey")
+
+# pylint: disable=W1203
+
+
 
 class ConturHistogram(BackendBase):
     r"""
@@ -91,16 +97,17 @@ class ConturHistogram(BackendBase):
             )
         log.debug(f"Min POI set to : {minimum_poi}")
 
+        self._main_model = None
+        self._constraint_model = None
+        self.constraints = []
+        """Constraints to be used during optimisation process"""
+
         self._config = ModelConfig(
             poi_index=0,
             minimum_poi=minimum_poi,
-            suggested_init=[1.0] * (len(data) + 1)
-            + (signal_uncertainty_configuration is not None)
-            * ([1.0] * len(signal_yields)),
+            suggested_init=[1.0] * (len(data) + 1),
             suggested_bounds=[(minimum_poi, 10)]
-            + [(None, None)] * len(data)
-            + (signal_uncertainty_configuration is not None)
-            * ([(None, None)] * len(signal_yields)),
+            + [(None, None)] * len(data),
         )
 
     @property

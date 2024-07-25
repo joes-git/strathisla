@@ -7,10 +7,12 @@ Developed for likelihood calculations in the [contur](https://gitlab.com/hepceda
 `ConturHistogram` represents the likelihood for a histogram with $i$ bins and covariance matrices ($\Sigma$) for the signal ($s$), background ($b$) and data ($n$) yields. This likelihood has the following form:
 
 $$
-\mathcal{L}(\mu, \theta) = \left[\prod_{i\in{\rm channels}}\prod_{j_i\in {\rm bins}}
-        {\rm Poiss}(n^j|(\mu n_s^j + n_b^j)(1 + \theta^j\sigma_b^j))\right] \cdot
-        \prod_{k\in{\rm nuis}}\mathcal{N}(\theta^k | 0, 1)
+L(\mu, \theta) = \prod_{i \in {\rm bins}} 
+        {\rm Poiss} ( n_i \vert \mu s_i+b_i + \sum_{j \in n,s,b} \theta^{(j)}_i \sigma^{(j)}_i)
+        \prod_{j \in n,s,b} 
+        {\rm Gauss}(\theta^{(j)}|0,\Sigma^{(j)})
 $$
+
 where $\mu$ is the parameter of interest, and $\theta$ are nuisance parameters.
 
 ## Installation

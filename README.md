@@ -12,14 +12,14 @@ L(\mu, \theta) = \prod_{i \in {\rm bins}}
         \cdot
         \prod_{j \in n,s,b} 
         {\rm Gauss}(\theta^{(j)}|0,\Sigma^{(j)})
-$$,
+$$
 where $\mu$ is the parameter of interest, and $\theta$ are nuisance parameters.
 
 ## Installation
 
 To use this plugin with Spey:
 
-0. Setup a virtual environment (optional):
+0. (Optional) Setup a virtual environment
 ```
 python -m venv spey_venv
 source spey_venv/bin/activate

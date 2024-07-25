@@ -9,7 +9,6 @@ Developed for likelihood calculations in the [contur](https://gitlab.com/hepceda
 $$
 L(\mu, \theta) = \prod_{i \in {\rm bins}} 
         {\rm Poiss} ( n_i \vert \mu s_i+b_i + \sum_{j \in n,s,b} \theta^{(j)}_i \sigma^{(j)}_i)
-        \cdot
         \prod_{j \in n,s,b} 
         {\rm Gauss}(\theta^{(j)}|0,\Sigma^{(j)})
 $$

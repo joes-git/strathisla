@@ -28,9 +28,10 @@ class ConturHistogram(BackendBase):
 
     .. math::
 
-        L(\mu, \theta) = \prod_{i \in {\rm bins}} 
-        {\rm Poiss} ( n_i \vert \mu s_i+b_i + \sum_{j \in n,s,b} \theta^{(j)}_i \sigma^{(j)}_i)
-        \cdot
+        L(\mu, \theta) = 
+        \prod_{i \in {\rm bins}} 
+        {\rm Poiss}
+        (n_i \vert \mu s_i+b_i + \sum_{j \in n,s,b}  \theta_i^{(j)} \sigma_i^{(j)})
         \prod_{j \in n,s,b} 
         {\rm Gauss}(\theta^{(j)}|0,\Sigma^{(j)}) 
 

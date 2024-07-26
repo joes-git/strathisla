@@ -92,12 +92,12 @@ class ConturHistogram(BackendBase):
             if len(data) != cov.shape[0]:
                 raise InvalidInput('Covariance matrices size should match the number of yields')
 
-                if len(data) > 1:
-                    # check all covariance matrices are 2D and square
-                    if cov.ndim != 2:
-                        raise InvalidInput('2D covariance matrix required')
-                    if cov.shape[0] != cov.shape[1]:
-                        raise InvalidInput('Covariance matrix must be square')
+            if len(data) > 1:
+                # check all covariance matrices are 2D and square
+                if cov.ndim != 2:
+                    raise InvalidInput('2D covariance matrix required')
+                if cov.shape[0] != cov.shape[1]:
+                    raise InvalidInput('Covariance matrix must be square')
 
         # can assign these now they've been checked
         self.signal_yields = signal_yields

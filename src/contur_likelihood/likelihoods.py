@@ -13,6 +13,7 @@ from spey.base import BackendBase, ModelConfig
 from spey.helper_functions import covariance_to_correlation
 from spey.optimizer import fit
 from spey.utils import ExpectationType
+from spey.system.exceptions import InvalidInput
 
 # pylint: disable=E1101,E1120
 log = logging.getLogger("Spey")

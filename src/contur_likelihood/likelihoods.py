@@ -111,6 +111,8 @@ class ConturHistogram(BackendBase):
         # flag for single bin likelihood
         if len(self.data) == 1:
             self.single_bin = True
+        else:
+            self.single_bin = False
 
         minimum_poi = -np.inf
         if self.is_alive:

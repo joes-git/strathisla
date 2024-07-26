@@ -77,25 +77,26 @@ class ConturHistogram(BackendBase):
         for np_arr in [signal_yield,background_yields,data,signal_covariance,background_covariance,data_covariance]:
             # check for empty inputs
             if np_arr.shape[0] == 0:
-                raise InvalidInput('Input arrays must not be empty')
+                raise InvalidInput('Inputs must not be empty')
             # check for single bin histo not passed as list, which results in an empty tuple for the .shape attribute
             if np_arr.shape == tuple():
                 raise InvalidInput('Pass input arguments as lists or numpy arrays')
 
         # check all input yields have the same length
         if len(set((len(yields) for yields in (signal_yields,background_yields,data)))) != 1:
-            raise InvalidInput('Arrays of yields must be the same length')
-
-        # check all covariance matrices are 2D and square
+            raise InvalidInput('Yields must be the same length')
+        
         for cov in (data_covariance,signal_covariance,background_covariance):
-            if cov.ndim != 2:
-                raise InvalidInput('2D covariance matrix required')
-            if cov.shape[0] != cov.shape[1]:
-                raise InvalidInput('Covariance matrix must be square')
+            # check input yields and covariance lengths match
+            if len(data) != cov.shape[0]:
+                raise InvalidInput('Covariance matrices size should match the number of yields')
 
-        # check input yields and covariance lengths match
-        if len(data) != data_covariance.shape[0]:
-            raise InvalidInput('Covariance matrices size should match the number of yields')
+                if len(data) > 1:
+                    # check all covariance matrices are 2D and square
+                    if cov.ndim != 2:
+                        raise InvalidInput('2D covariance matrix required')
+                    if cov.shape[0] != cov.shape[1]:
+                        raise InvalidInput('Covariance matrix must be square')
 
         # can assign these now they've been checked
         self.signal_yields = signal_yields

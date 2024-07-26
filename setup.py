@@ -7,5 +7,6 @@ setup(
         "spey.backend.plugins": [
             "contur.full_histogram_likelihood = contur_likelihood.likelihoods:ConturHistogram"
         ]
-    }
+    },
+    install_requires=["spey"],
 )

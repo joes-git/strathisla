@@ -75,7 +75,7 @@ class ConturHistogram(BackendBase):
         background_covariance = np.array(background_covariance)
         data_covariance = np.array(data_covariance)
 
-        for np_arr in [signal_yield,background_yields,data,signal_covariance,background_covariance,data_covariance]:
+        for np_arr in [signal_yields,background_yields,data,signal_covariance,background_covariance,data_covariance]:
             # check for empty inputs
             if np_arr.shape[0] == 0:
                 raise InvalidInput('Inputs must not be empty')

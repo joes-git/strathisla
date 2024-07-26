@@ -172,25 +172,20 @@ class ConturHistogram(BackendBase):
         if self._constraint_model is None:
             if self.single_bin:
                 # get a Gaussian with mean zero and standard deviation from the covariance matrix
-                pdf_descs = [ 
-                {
-                    "distribution_type": "normal",
-                    "args": [np.zeros(1), np.sqrt(cov)],
-                    "kwargs": {"domain": slice(1, None)},
-                }
-                for cov in (self.signal_covariance,self.background_covariance,self.data_covariance)
-            ]
-
+                distribution_type = "normal"
+                args = [np.zeros(1), np.sqrt(cov)]
             else:
-                # make a pdf description for each source of uncertainty
-                pdf_descs = [ 
-                    {
-                        "distribution_type": "multivariatenormal",
-                        "args": [np.zeros(len(self.data)), covariance_to_correlation(cov)],
-                        "kwargs": {"domain": slice(1, None)},
-                    }
-                    for cov in (self.signal_covariance,self.background_covariance,self.data_covariance)
-                ]
+                distribution_type = "multivariatenormal"
+                args = [np.zeros(len(self.data)), covariance_to_correlation(cov)]
+            pdf_descs = [ 
+            {
+                "distribution_type": distribution_type,
+                "args": args,
+                "kwargs": {"domain": slice(1, None)},
+            }
+            # want a constraint pdf for each source of uncertainty
+            for cov in (self.signal_covariance,self.background_covariance,self.data_covariance)
+            ]
 
             self._constraint_model = ConstraintModel(pdf_descs)
         return self._constraint_model

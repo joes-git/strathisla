@@ -76,12 +76,12 @@ class ConturHistogram(BackendBase):
         data_covariance = np.array(data_covariance)
 
         for np_arr in [signal_yields,background_yields,data,signal_covariance,background_covariance,data_covariance]:
-            # check for empty inputs
-            if np_arr.shape[0] == 0:
-                raise InvalidInput('Inputs must not be empty')
             # check for single bin histo not passed as list, which results in an empty tuple for the .shape attribute
             if np_arr.shape == tuple():
                 raise InvalidInput('Pass input arguments as lists or numpy arrays')
+            # check for empty inputs
+            if np_arr.shape[0] == 0:
+                raise InvalidInput('Inputs must not be empty')
 
         # check all input yields have the same length
         if len(set((len(yields) for yields in (signal_yields,background_yields,data)))) != 1:

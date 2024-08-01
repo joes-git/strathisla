@@ -108,11 +108,18 @@ class ConturHistogram(BackendBase):
         self.background_covariance = background_covariance
         self.data_covariance = data_covariance
 
-        # flag for single bin likelihood
+        # set flag for single bin likelihood
+        # also get uncertainties required for computation of Poisson mean in main model
         if len(self.data) == 1:
             self.single_bin = True
+            self.signal_uncertainties = np.sqrt(self.signal_covariance)
+            self.background_uncertainties = np.sqrt(self.background_covariance)
+            self.data_uncertainties = np.sqrt(self.data_covariance)
         else:
             self.single_bin = False
+            self.signal_uncertainties = np.sqrt(self.signal_covariance.diagonal())
+            self.background_uncertainties = np.sqrt(self.background_covariance.diagonal())
+            self.data_uncertainties = np.sqrt(self.data_covariance.diagonal())
 
         minimum_poi = -np.inf
         if self.is_alive:
@@ -218,22 +225,14 @@ class ConturHistogram(BackendBase):
                 # split the non-poi parameters into 3 seperate arrays for signal, background and data uncertainties
                 signal_pars, background_pars, data_pars = np.array_split(pars[1:],3)
 
-                signal_uncertainties = np.sqrt(self.signal_covariance.diagonal())
-                background_uncertainties = np.sqrt(self.background_covariance.diagonal())
-                data_uncertainties = np.sqrt(self.data_covariance.diagonal())
-
-                return poisson_counts + signal_pars*signal_uncertainties + background_pars*background_uncertainties + data_pars*data_uncertainties
+                return poisson_counts + signal_pars*self.signal_uncertainties + background_pars*self.background_uncertainties + data_pars*self.data_uncertainties
 
             def constraint(pars: np.ndarray) -> np.ndarray:
                 """Compute constraint term"""
                 # split the non-poi parameters into 3 seperate arrays for signal, background and data uncertainties
                 signal_pars, background_pars, data_pars = np.array_split(pars[1:],3)
 
-                signal_uncertainties = np.sqrt(self.signal_covariance.diagonal())
-                background_uncertainties = np.sqrt(self.background_covariance.diagonal())
-                data_uncertainties = np.sqrt(self.data_covariance.diagonal())
-
-                return signal_pars*signal_uncertainties + background_pars*background_uncertainties + data_pars*data_uncertainties
+                return signal_pars*self.signal_uncertainties + background_pars*self.background_uncertainties + data_pars*self.data_uncertainties
 
             jac_constr = jacobian(constraint)
 

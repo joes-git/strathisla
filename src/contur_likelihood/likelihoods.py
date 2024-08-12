@@ -137,9 +137,9 @@ class ConturHistogram(BackendBase):
         self._config = ModelConfig(
             poi_index=0,
             minimum_poi=minimum_poi,
-            suggested_init=[1.0] * (len(data) + 1),
+            suggested_init=[1.0] * (3*len(data) + 1),
             suggested_bounds=[(minimum_poi, 10)]
-            + [(None, None)] * len(data),
+            + [(None, None)] * 3*len(data),
         )
 
     @property
@@ -176,6 +176,8 @@ class ConturHistogram(BackendBase):
     @property
     def constraint_model(self) -> ConstraintModel:
         """retreive constraint model distribution"""
+        # set this so that the model for each nuisance source can only access its own nuisance parameters
+        slice_start_index = (1,2,3)
         if self._constraint_model is None:
             if self.single_bin:
                 # get a Gaussian with mean zero and standard deviation from the covariance matrix
@@ -183,10 +185,10 @@ class ConturHistogram(BackendBase):
                 {
                     "distribution_type": "normal",
                     "args": [np.zeros(1), np.sqrt(cov)],
-                    "kwargs": {"domain": slice(1, None)},
+                    "kwargs": {"domain": slice(index, None, 3)},
                 }
                 # want a constraint pdf for each source of uncertainty
-                for cov in (self.signal_covariance,self.background_covariance,self.data_covariance)
+                for cov, index in zip((self.signal_covariance,self.background_covariance,self.data_covariance),slice_start_index)
                 ]
                 
             else:
@@ -194,10 +196,10 @@ class ConturHistogram(BackendBase):
                 {
                     "distribution_type": "multivariatenormal",
                     "args": [np.zeros(len(self.data)), covariance_to_correlation(cov)],
-                    "kwargs": {"domain": slice(1, None)},
+                    "kwargs": {"domain": slice(index, None, 3)},
                 }
                 # want a constraint pdf for each source of uncertainty
-                for cov in (self.signal_covariance,self.background_covariance,self.data_covariance)
+                for cov, index in zip((self.signal_covariance,self.background_covariance,self.data_covariance), slice_start_index)
                 ]
 
             self._constraint_model = ConstraintModel(pdf_descs)
@@ -220,18 +222,18 @@ class ConturHistogram(BackendBase):
                     expectation value of the poisson distribution with respect to
                     nuisance parameters.
                 """
-                poisson_counts = (pars[0] * self.signal_yields + self.background_yields)
                 # have 3 nuisance parameters for each bin, so 3N+1 in total for N bins
                 # split the non-poi parameters into 3 seperate arrays for signal, background and data uncertainties
-                signal_pars, background_pars, data_pars = np.array_split(pars[1:],3)
-
-                return poisson_counts + signal_pars*self.signal_uncertainties + background_pars*self.background_uncertainties + data_pars*self.data_uncertainties
+                signal_pars =  pars[slice(1,None,3)]
+                background_pars = pars[slice(2,None,3)]
+                data_pars = pars[slice(3,None,3)]
+                return pars[0] * self.signal_yields + self.background_yields + signal_pars*self.signal_uncertainties + background_pars*self.background_uncertainties + data_pars*self.data_uncertainties
 
             def constraint(pars: np.ndarray) -> np.ndarray:
                 """Compute constraint term"""
-                # split the non-poi parameters into 3 seperate arrays for signal, background and data uncertainties
-                signal_pars, background_pars, data_pars = np.array_split(pars[1:],3)
-
+                signal_pars = pars[slice(1,None,3)]
+                background_pars = pars[slice(2,None,3)]
+                data_pars = pars[slice(3,None,3)]
                 return signal_pars*self.signal_uncertainties + background_pars*self.background_uncertainties + data_pars*self.data_uncertainties
 
             jac_constr = jacobian(constraint)

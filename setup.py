@@ -5,7 +5,7 @@ setup(
     packages=find_packages(where="src"),
     entry_points={
         "spey.backend.plugins": [
-            "contur.full_histogram_likelihood = contur_likelihood.likelihoods:ConturHistogram"
+            "contur.full_histogram_likelihood = contur_likelihood.nuisance_parameters:ConturHistogram"
         ]
     },
     install_requires=["spey"],

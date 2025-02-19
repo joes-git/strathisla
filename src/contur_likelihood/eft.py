@@ -15,6 +15,8 @@ from spey.optimizer import fit
 from spey.utils import ExpectationType
 from spey.system.exceptions import InvalidInput
 
+log = logging.getLogger("Spey")
+
 class MultivariateGaussianEFT(BackendBase):
     r"""
     Multivariate Gaussian likelihood, with seperated contributions from BSM+SM (interference) and pure BSM (squared) terms.
@@ -60,7 +62,7 @@ class MultivariateGaussianEFT(BackendBase):
         data = np.array(data)
         covariance = np.array(covariance)
 
-        for np_arr in [square_term, intereference_term, background, data, covariance]: #[signal_yields,background_yields,data,signal_covariance,background_covariance,data_covariance]:
+        for np_arr in [square_term, interference_term, background, data, covariance]: #[signal_yields,background_yields,data,signal_covariance,background_covariance,data_covariance]:
             # check for single bin histo not passed as list, which results in an empty tuple for the .shape attribute
             if np_arr.shape == tuple():
                 raise InvalidInput('Pass input arguments as lists or numpy arrays')
@@ -69,7 +71,7 @@ class MultivariateGaussianEFT(BackendBase):
                 raise InvalidInput('Inputs must not be empty')
 
         # check all input yields have the same length
-        if len(set((len(yields) for yields in (square_term, intereference_term, background, data)))) != 1:
+        if len(set((len(yields) for yields in (square_term, interference_term, background, data)))) != 1:
             raise InvalidInput('Input arrays must be the same length')
         
         # check input yields and covariance lengths match
@@ -93,8 +95,8 @@ class MultivariateGaussianEFT(BackendBase):
         minimum_poi = -np.inf
         if self.is_alive:
             minimum_poi = -np.min(
-                self.background_yields[self.signal_yields > 0.0]
-                / self.signal_yields[self.signal_yields > 0.0]
+                self.background[self.square_term > 0.0]
+                / self.square_term[self.square_term > 0.0]
             )
         log.debug(f"Min POI set to : {minimum_poi}")
 
@@ -118,7 +120,7 @@ class MultivariateGaussianEFT(BackendBase):
     @property
     def is_alive(self) -> bool:
         """Returns True if at least one bin has non-zero signal yield."""
-        return np.any(self.signal_yields > 0.0)
+        return np.any(self.square_term > 0.0) or np.any(self.interference_term > 0.0)
 
     def config(self, allow_negative_signal: bool = True, poi_upper_bound: float = 50.0
     ) -> ModelConfig:
@@ -208,7 +210,7 @@ class MultivariateGaussianEFT(BackendBase):
             """Compute twice negative log-likelihood"""
             return -self.main_model.log_prob(
                 pars, data[: len(self.data)]
-            ) - self.constraint_model.log_prob(pars)
+            )
 
         if do_grad:
             return value_and_grad(negative_loglikelihood, argnum=0)
@@ -251,7 +253,7 @@ class MultivariateGaussianEFT(BackendBase):
 
         return lambda pars: self.main_model.log_prob(
             pars, data[: len(self.data)]
-        ) + self.constraint_model.log_prob(pars)
+        )
 
     def get_hessian_logpdf_func(
         self,

@@ -51,7 +51,7 @@ class MultivariateGaussianEFT(BackendBase):
         interference_term: np.ndarray,
         background: np.ndarray,
         data: np.ndarray,
-        covariance_matrix: np.ndarray
+        covariance: np.ndarray
     ):  
         # need numpy arrays for the checks
         square_term = np.array(square_term)

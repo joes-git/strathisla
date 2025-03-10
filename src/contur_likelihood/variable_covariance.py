@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Any, Callable, Dict, List, Literal, Union
 
-from spey.backends.distributions import MainModel
+from spey.backends.distributions import MainModel, MultivariateNormal, Normal
 
 class VariableCovMainModel(MainModel):
     """

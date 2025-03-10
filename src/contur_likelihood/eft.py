@@ -388,17 +388,17 @@ class MultivariateGaussianCovarianceScaledEFT(BackendBase):
         background: np.ndarray,
         data: np.ndarray,
         data_covariance: np.ndarray,
-        sm_covariance: np.ndarray,
+        background_covariance: np.ndarray,
         square_term_covariance: np.ndarray,
-        intereference_term_covariance: np.ndarray,
+        interference_term_covariance: np.ndarray,
     ):  
         # need numpy arrays for the checks
         square_term = np.array(square_term)
         interference_term = np.array(interference_term)
         background = np.array(background)
         data = np.array(data)
-        data_covariance = np.array(covariance)
-        sm_covariance = np.array(sm_covariance)
+        data_covariance = np.array(data_covariance)
+        background_covariance = np.array(background_covariance)
         square_term_covariance = np.array(square_term_covariance)
         interference_term_covariance = np.array(interference_term_covariance)
 
@@ -416,7 +416,7 @@ class MultivariateGaussianCovarianceScaledEFT(BackendBase):
         self.background = background
         self.data = data
         self.data_covariance = data_covariance
-        self.sm_covariance = sm_covariance
+        self.background_covariance = background_covariance
         self.square_term_covariance = square_term_covariance
         self.interference_term_covariance = interference_term_covariance
 
@@ -500,7 +500,7 @@ class MultivariateGaussianCovarianceScaledEFT(BackendBase):
                     ``np.ndarray``:
                     covariance matrix of the distribution.
                 """
-                return self.data_covariance + self.sm_covariance + pars[0]**2 * self.interference_term_covariance + pars[0]**4 * self.square_term_covariance
+                return self.data_covariance + self.background_covariance + pars[0]**2 * self.interference_term_covariance + pars[0]**4 * self.square_term_covariance
 
             self._main_model = VariableCovMainModel(lam, cov, pdf_type="multivariategauss")
 

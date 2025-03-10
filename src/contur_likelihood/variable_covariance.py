@@ -1,3 +1,8 @@
+import numpy as np
+from typing import Any, Callable, Dict, List, Literal, Union
+
+from spey.backends.distributions import MainModel
+
 class VariableCovMainModel(MainModel):
     """
     Variant on the main model that allows for the covariance matrix to be a function of the nuisance parameters.

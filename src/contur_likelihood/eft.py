@@ -108,7 +108,7 @@ class MultivariateGaussianEFT(BackendBase):
         self._config = ModelConfig(
             poi_index=0,
             minimum_poi=minimum_poi,
-            suggested_init=[1.0],
+            suggested_init=[0.0],
             suggested_bounds=[(minimum_poi, 50)]
         )
 

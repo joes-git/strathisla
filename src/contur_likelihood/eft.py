@@ -16,7 +16,7 @@ from spey.utils import ExpectationType
 from spey.system.exceptions import InvalidInput
 
 # override for MainModel
-from variable_covariance import VariableCovMainModel
+from contur_likelihood.variable_covariance import VariableCovMainModel
 
 log = logging.getLogger("Spey")
 

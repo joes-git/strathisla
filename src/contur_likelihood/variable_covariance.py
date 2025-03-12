@@ -22,8 +22,8 @@ class VariableCovMainModel(MainModel):
         self.pdf_type = pdf_type
         """Type of the PDF"""
         if pdf_type == "multivariategauss" and cov is not None:
-            self._pdf = lambda pars: MultivariateNormal(mean=loc(pars), cov=cov)
+            self._pdf = lambda pars: MultivariateNormal(mean=loc(pars), cov=cov(pars))
         elif pdf_type == "gauss" and cov is not None:
-            self._pdf = lambda pars: Normal(loc=loc(pars), scale=cov)
+            self._pdf = lambda pars: Normal(loc=loc(pars), scale=cov(pars))
         else:
             raise DistributionError("Unknown pdf type or associated input.")

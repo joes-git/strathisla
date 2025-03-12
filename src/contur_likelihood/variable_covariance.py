@@ -16,14 +16,14 @@ class VariableCovMainModel(MainModel):
     def __init__(
         self,
         loc: Callable[[np.ndarray], np.ndarray],
-        cov: np.ndarray = Callable[[np.ndarray], np.ndarray],
+        cov: Callable[[np.ndarray], np.ndarray],
         pdf_type: Literal["gauss", "multivariategauss"] = "multivariategauss",
     ):
         self.pdf_type = pdf_type
         """Type of the PDF"""
         if pdf_type == "multivariategauss" and cov is not None:
-            self._pdf = lambda pars: MultivariateNormal(mean=loc(pars), cov=cov(pars))
+            self._pdf = lambda pars: MultivariateNormal(mean=loc(pars), cov=cov)
         elif pdf_type == "gauss" and cov is not None:
-            self._pdf = lambda pars: Normal(loc=loc(pars), scale=cov(pars))
+            self._pdf = lambda pars: Normal(loc=loc(pars), scale=cov)
         else:
             raise DistributionError("Unknown pdf type or associated input.")

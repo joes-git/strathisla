@@ -491,7 +491,7 @@ class MultivariateGaussianCovarianceScaledEFT(BackendBase):
 
             def cov(pars: np.ndarray) -> np.ndarray:
                 """
-                Compute covariance matrix for Main model.
+                Covariance matrix scaled with the parameter of interest.
 
                 Args:
                     pars (``np.ndarray``): nuisance parameters

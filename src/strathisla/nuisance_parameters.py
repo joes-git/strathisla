@@ -1,4 +1,4 @@
-"""Spey implementation for the full Contur likelihood described in arXiv:2102.04377"""
+"""Spey plugin for the likelihood described in arXiv:2102.04377"""
 
 import logging
 from typing import Any, Callable, Dict, List, Optional, Text, Tuple, Union
@@ -22,7 +22,7 @@ log = logging.getLogger("Spey")
 
 
 
-class ConturHistogram(BackendBase):
+class FullNuisanceParameters(BackendBase):
     r"""
     Spey implementation for the likelihood for a histogram with correlated uncertainties on the signal, background and data.  
     Described in arXiv:2102.04377. See eq. 7.
@@ -45,7 +45,7 @@ class ConturHistogram(BackendBase):
         data_covariance (``np.ndarray``): data covariance matrix (must be square)
     """
 
-    name: str = "contur.full_histogram_likelihood"
+    name: str = "strathisla.full_nuisance_parameters"
     """Name of the backend"""
     version: str = "1.0.0"
     """Version of the backend"""

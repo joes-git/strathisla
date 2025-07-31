@@ -5,9 +5,9 @@ setup(
     packages=find_packages(where="src"),
     entry_points={
         "spey.backend.plugins": [
-            "contur.full_histogram_likelihood = contur_likelihood.nuisance_parameters:ConturHistogram",
-            "contur.multivariate_gaussian_eft = contur_likelihood.eft:MultivariateGaussianEFT",
-            "contur.multivariate_gaussian_scaled_covariance_eft = contur_likelihood.eft:MultivariateGaussianCovarianceScaledEFT"
+            "strathisla.full_nuisance_parameters = strathisla.nuisance_parameters:FullNuisanceParameters",
+            "strathisla.simple_multivariate_gaussian_eft = strathisla.eft:SimpleMultivariateGaussianEFT",
+            "strathisla.multivariate_gaussian_scaled_covariance_eft = strathisla.eft:MultivariateGaussianCovarianceScaledEFT",
         ]
     },
     install_requires=["spey"],

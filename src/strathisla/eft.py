@@ -27,11 +27,11 @@ class SimpleMultivariateGaussianEFT(BackendBase):
 
     .. math::
         \mathcal{L}(\mu) = \frac{1}{\sqrt{(2\pi)^k {\rm det}[\Sigma] }}
-        \exp\left[-\frac{1}{2} (\mu^2 n_{sq} + \mu n_{int} + n_b - n)\Sigma^{-1} (\mu^2 n_{sq} + \mu n_{int} + n_b - n)^T \right]
+        \exp\left[-\frac{1}{2} (\mu^2 s_{\text{quad}} + \mu s_{\text{lin}} + b - n)\Sigma^{-1} (\mu^2 s_{\text{quad}} + \mu s_{\text{lin}} + b - n)^T \right]
 
 
     Args:
-        square_term (``np.ndarray``): signal that scales quadtratically with the parameter of interest
+        quadratic_term (``np.ndarray``): signal that scales quadtratically with the parameter of interest
         linear_term (``np.ndarray``): signal that scales linearly with the parameter of interest
         background (``np.ndarray``): background yields
         data (``np.ndarray``): observations
@@ -53,20 +53,20 @@ class SimpleMultivariateGaussianEFT(BackendBase):
 
     def __init__(
         self,
-        square_term: np.ndarray,
+        quadratic_term: np.ndarray,
         linear_term: np.ndarray,
         background: np.ndarray,
         data: np.ndarray,
         covariance: np.ndarray
     ):  
         # need numpy arrays for the checks
-        square_term = np.array(square_term)
+        quadratic_term = np.array(quadratic_term)
         linear_term = np.array(linear_term)
         background = np.array(background)
         data = np.array(data)
         covariance = np.array(covariance)
 
-        for np_arr in [square_term, linear_term, background, data, covariance]: #[signal_yields,background_yields,data,signal_covariance,background_covariance,data_covariance]:
+        for np_arr in [quadratic_term, linear_term, background, data, covariance]: #[signal_yields,background_yields,data,signal_covariance,background_covariance,data_covariance]:
             # check for single bin histo not passed as list, which results in an empty tuple for the .shape attribute
             if np_arr.shape == tuple():
                 raise InvalidInput('Pass input arguments as lists or numpy arrays')
@@ -75,7 +75,7 @@ class SimpleMultivariateGaussianEFT(BackendBase):
                 raise InvalidInput('Inputs must not be empty')
 
         # check all input yields have the same length
-        if len(set((len(yields) for yields in (square_term, linear_term, background, data)))) != 1:
+        if len(set((len(yields) for yields in (quadratic_term, linear_term, background, data)))) != 1:
             raise InvalidInput('Input arrays must be the same length')
         
         # check input yields and covariance lengths match
@@ -90,7 +90,7 @@ class SimpleMultivariateGaussianEFT(BackendBase):
                 raise InvalidInput('Covariance matrix must be square')
 
         # can assign these now they've been checked
-        self.square_term = square_term
+        self.quadratic_term = quadratic_term
         self.linear_term = linear_term
         self.background = background
         self.data = data
@@ -99,8 +99,8 @@ class SimpleMultivariateGaussianEFT(BackendBase):
         minimum_poi = -np.inf
         if self.is_alive:
             minimum_poi = -np.min(
-                self.background[self.square_term > 0.0]
-                / self.square_term[self.square_term > 0.0]
+                self.background[self.quadratic_term > 0.0]
+                / self.quadratic_term[self.quadratic_term > 0.0]
             )
         log.debug(f"Min POI set to : {minimum_poi}")
 
@@ -124,7 +124,7 @@ class SimpleMultivariateGaussianEFT(BackendBase):
     @property
     def is_alive(self) -> bool:
         """Returns True if at least one bin has non-zero signal yield."""
-        return np.any(self.square_term > 0.0) or np.any(self.linear_term > 0.0)
+        return np.any(self.quadratic_term > 0.0) or np.any(self.linear_term > 0.0)
 
     def config(self, allow_negative_signal: bool = True, poi_upper_bound: float = 50.0
     ) -> ModelConfig:
@@ -168,7 +168,7 @@ class SimpleMultivariateGaussianEFT(BackendBase):
                     ``np.ndarray``:
                     expectation value of the poisson distribution.
                 """
-                return pars[0]**2 * self.square_term + pars[0] * self.linear_term + self.background
+                return pars[0]**2 * self.quadratic_term + pars[0] * self.linear_term + self.background
 
             self._main_model = MainModel(lam, **self._main_kwargs)
 
@@ -355,14 +355,15 @@ class SimpleMultivariateGaussianEFT(BackendBase):
 class MultivariateGaussianCovarianceScaledEFT(BackendBase):
     r"""
     Multivariate Gaussian likelihood, with seperated contributions from BSM+SM (interference) and pure BSM (squared) terms.
+    The covariance matrix is scaled by the parameter of interest, :math:`\mu`.
 
     .. math::
-        \mathcal{L}(\mu) = \frac{1}{\sqrt{(2\pi)^k {\rm det}[\Sigma] }}
-        \exp\left[-\frac{1}{2} (\mu^2 n_{sq} + \mu n_{int} + n_b - n)\Sigma^{-1} (\mu^2 n_{sq} + \mu n_{int} + n_b - n)^T \right]
+         \mathcal{L}(\mu) = \frac{1}{\sqrt{(2\pi)^k {\rm det}[\Sigma(\mu)] }}
+        \exp\left[-\frac{1}{2} (\mu^2 s_{\text{quad}} + \mu s_{\text{lin}} + b - n)\Sigma^{-1}(\mu) (\mu^2 s_{\text{quad}} + \mu s_{\text{lin}} + b - n)^T \right]
 
 
     Args:
-        square_term (``np.ndarray``): contribution from pure BSM diagrams
+        quadratic_term (``np.ndarray``): contribution from pure BSM diagrams
         linear_term (``np.ndarray``): 
         background (``np.ndarray``): background yields
         data (``np.ndarray``): observations
@@ -384,27 +385,27 @@ class MultivariateGaussianCovarianceScaledEFT(BackendBase):
 
     def __init__(
         self,
-        square_term: np.ndarray,
+        quadratic_term: np.ndarray,
         linear_term: np.ndarray,
         background: np.ndarray,
         data: np.ndarray,
         data_covariance: np.ndarray,
         background_covariance: np.ndarray,
-        square_term_covariance: np.ndarray,
+        quadratic_term_covariance: np.ndarray,
         linear_term_covariance: np.ndarray,
     ):  
         # need numpy arrays for the checks
-        square_term = np.array(square_term)
+        quadratic_term = np.array(quadratic_term)
         linear_term = np.array(linear_term)
         background = np.array(background)
         data = np.array(data)
         data_covariance = np.array(data_covariance)
         background_covariance = np.array(background_covariance)
-        square_term_covariance = np.array(square_term_covariance)
+        quadratic_term_covariance = np.array(quadratic_term_covariance)
         linear_term_covariance = np.array(linear_term_covariance)
 
         # check all input yields have the same length
-        if len(set((len(yields) for yields in (square_term, linear_term, background, data)))) != 1:
+        if len(set((len(yields) for yields in (quadratic_term, linear_term, background, data)))) != 1:
             raise InvalidInput('Input arrays must be the same length')
         
         # check input yields and covariance lengths match
@@ -412,20 +413,20 @@ class MultivariateGaussianCovarianceScaledEFT(BackendBase):
             raise InvalidInput('Covariance matrix size should match the number of yields')
 
         # can assign these now they've been checked
-        self.square_term = square_term
+        self.quadratic_term = quadratic_term
         self.linear_term = linear_term
         self.background = background
         self.data = data
         self.data_covariance = data_covariance
         self.background_covariance = background_covariance
-        self.square_term_covariance = square_term_covariance
+        self.quadratic_term_covariance = quadratic_term_covariance
         self.linear_term_covariance = linear_term_covariance
 
         minimum_poi = -np.inf
         if self.is_alive:
             minimum_poi = -np.min(
-                self.background[self.square_term > 0.0]
-                / self.square_term[self.square_term > 0.0]
+                self.background[self.quadratic_term > 0.0]
+                / self.quadratic_term[self.quadratic_term > 0.0]
             )
         log.debug(f"Min POI set to : {minimum_poi}")
 
@@ -444,7 +445,7 @@ class MultivariateGaussianCovarianceScaledEFT(BackendBase):
     @property
     def is_alive(self) -> bool:
         """Returns True if at least one bin has non-zero signal yield."""
-        return np.any(self.square_term > 0.0) or np.any(self.linear_term > 0.0)
+        return np.any(self.quadratic_term > 0.0) or np.any(self.linear_term > 0.0)
 
     def config(self, allow_negative_signal: bool = True, poi_upper_bound: float = 50.0
     ) -> ModelConfig:
@@ -488,7 +489,7 @@ class MultivariateGaussianCovarianceScaledEFT(BackendBase):
                     ``np.ndarray``:
                     expectation value of the poisson distribution.
                 """
-                return pars[0]**2 * self.square_term + pars[0] * self.linear_term + self.background
+                return pars[0]**2 * self.quadratic_term + pars[0] * self.linear_term + self.background
 
             def cov(pars: np.ndarray) -> np.ndarray:
                 """
@@ -501,7 +502,7 @@ class MultivariateGaussianCovarianceScaledEFT(BackendBase):
                     ``np.ndarray``:
                     covariance matrix of the distribution.
                 """
-                return self.data_covariance + self.background_covariance + pars[0]**2 * self.linear_term_covariance + pars[0]**4 * self.square_term_covariance
+                return self.data_covariance + self.background_covariance + pars[0]**2 * self.linear_term_covariance + pars[0]**4 * self.quadratic_term_covariance
 
             self._main_model = VariableCovMainModel(lam, cov, pdf_type="multivariategauss")
 

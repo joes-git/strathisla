@@ -6,6 +6,7 @@ Available models:
 
 - [`FullNuisanceParameters`](#fullnuisanceparameters): Poisson likelihood with nuisance parameters on the signal, background and data.
 - [`SimpleMultivariateGaussianEFT`](#simplemultivariategaussianeft): Multivariate Gaussian likelihood with no nuisance parameters. Two signal inputs: the first scales linearly with the parameter of interest, the second quadratically.
+- [`MultivariateGaussianCovarianceScaledEFT`](#multivariategaussiancovariancescaledeft): As above, but the signal covariance matrices are scaled by the parameter of interest
 
 ## Installation
 
@@ -60,12 +61,20 @@ where $\mu$ is the parameter of interest, and $\theta$ are nuisance parameters.
 
 ## `SimpleMultivariateGaussianEFT`
 
-Simple Multivariate Gaussian likelihood (no nuisance parameters) for a histogram with $i$ correlated bins and two signal contributions: A term $s_{\text{lin}}$ with scales linearly with the signal strength $\mu$, and a term $s_{\text{quad}}$, which scales quadratically $\mu^2$ The form of this likelihood is:
+Simple multivariate Gaussian likelihood (no nuisance parameters) for a histogram with $i$ correlated bins and two signal contributions: A term $s_{\text{lin}}$ with scales linearly with the signal strength $\mu$, and a term $s_{\text{quad}}$, which scales quadratically $\mu^2$ The form of this likelihood is:
 
 $$
 L(\mu) = 
 \frac{1}{\sqrt{(2\pi)^k \det(\Sigma)}}
-\exp \left( -\frac{1}{2} (\mu^2 s_{\text{quad}} + \mu s_{\text{lin}} + b - n)^{\text{T}} \Sigma^{-1} (\mu^2 s_{\text{lin}} + \mu s_{\text{quad}} + b - n) \right),
+\exp \left( -\frac{1}{2} (\mu^2 s_{\text{quad}} + \mu s_{\text{lin}} + b - n)^{\text{T}} \Sigma^{-1} (\mu^2 s_{\text{quad}} + \mu s_{\text{lin}} + b - n) \right),
 $$
 
 where $\Sigma$ is the covariance matrix, $b$ is the background and $n$ is the data.
+
+## `MultivariateGaussianCovarianceScaledEFT`
+
+The multivariante Gaussian likelihood above, but the signal contributions to the covariance matrix are scaled by the parameter of interest as:
+
+$$
+\Sigma(\mu) = \mu^4 \Sigma_{\text{quad}} + \mu^2 \Sigma_{\text{lin}} + \Sigma_b + \Sigma_n
+$$

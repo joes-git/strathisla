@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "strathisla" 
+version = "1.0.0" 
+description = "Likelihood plugins for the Spey package"
+readme = "README.md"
+authors = [
+    {name = "Joe Egan", email = "joe.egan.23@ucl.ac.uk"},
+]
+
+license = {text = "MIT"} 
+classifiers = [
+    "Development Status :: 3 - Alpha", 
+    "Intended Audience :: Science/Researchers",
+    "License :: OSI Approved :: MIT License", 
+    "Programming Language :: Python :: 3.8", 
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "spey",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/joes-git/strathisla"
+"Bug Reports" = "https://github.com/joes-git/strathisla/issues"
+"Source" = "https://github.com/joes-git/strathisla"
+"Documentation" = "https://github.com/joes-git/strathisla#readme"
+
+[project.entry-points."spey.backend.plugins"]
+"strathisla.full_nuisance_parameters" = "strathisla.nuisance_parameters:FullNuisanceParameters"
+"strathisla.simple_multivariate_gaussian_eft" = "strathisla.eft:SimpleMultivariateGaussianEFT"
+"strathisla.multivariate_gaussian_scaled_covariance_eft" = "strathisla.eft:MultivariateGaussianCovarianceScaledEFT"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"

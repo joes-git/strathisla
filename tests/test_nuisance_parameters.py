@@ -125,30 +125,31 @@ def test_full_nuisance_parameters_calculations():
     assert poi_upper_limit >= 0, "Upper limit should be non-negative"
 
 
-def test_covariance_matrix_properties():
-    """Test mathematical properties of covariance matrices"""
+def test_readme_example():
+    """Check the example in the readme works"""
     
     data = np.array([30, 35, 40])
     signal_yields = np.array([8.0, 10.0, 12.0])
     background_yields = np.array([25.0, 28.0, 32.0])
-    
-    # positive definite covariance matrices
+        
     signal_covariance = np.array([[1.0, 0.2, 0.1], 
-                                 [0.2, 1.5, 0.3], 
-                                 [0.1, 0.3, 2.0]])
-    
+                                    [0.2, 1.5, 0.3], 
+                                    [0.1, 0.3, 2.0]])
+        
     background_covariance = np.array([[16.0, 4.0, 2.0],
-                                     [4.0, 25.0, 5.0],
-                                     [2.0, 5.0, 36.0]])
-    
-    data_covariance = np.diag([30.0, 35.0, 40.0])
+                                        [4.0, 25.0, 5.0],
+                                        [2.0, 5.0, 36.0]])
+        
+    data_covariance = np.array([[30.0,2.0,0.5], [4.3, 35.0, 9.0] , [6.2, 13.0, 40.0]])
     
     # check matrices are positive definite
     assert np.all(np.linalg.eigvals(signal_covariance) > 0), "Signal covariance not positive definite"
     assert np.all(np.linalg.eigvals(background_covariance) > 0), "Background covariance not positive definite"
     assert np.all(np.linalg.eigvals(data_covariance) > 0), "Data covariance not positive definite"
     
-    stat_model = FullNuisanceParameters(
+    backend = spey.get_backend("strathisla.full_nuisance_parameters")
+
+    stat_model = backend(
         signal_yields=signal_yields,
         background_yields=background_yields,
         data=data,
@@ -157,7 +158,9 @@ def test_covariance_matrix_properties():
         data_covariance=data_covariance
     )
     
-    assert stat_model is not None, "Model creation with covariances failed"
+    CLs = stat_model.exclusion_confidence_level()
+
+    assert np.isclose(CLs[0],0.7583), "Result of example computation has changed"
 
 
 def test_model_types():

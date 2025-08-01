@@ -1,6 +1,6 @@
 # Statisical Model Plugins for Spey
 
-Various plugins for [Spey](https://github.com/SpeysideHEP/spey)
+Various likelihood plugins for [Spey](https://github.com/SpeysideHEP/spey). The package is named after the [Strathisla](https://en.wikipedia.org/wiki/Strathisla_distillery), the Speyside distillery.
 
 Available models:
 

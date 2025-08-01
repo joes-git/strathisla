@@ -43,7 +43,7 @@ dev = [
 "Bug Reports" = "https://github.com/joes-git/strathisla/issues"
 "Source" = "https://github.com/joes-git/strathisla"
 
-[project.entry-points."spey.backends"]
+[project.entry-points."spey.backend.plugins"]
 "strathisla.full_nuisance_parameters" = "strathisla.nuisance_parameters:FullNuisanceParameters"
 "strathisla.simple_multivariate_gaussian_eft" = "strathisla.eft:SimpleMultivariateGaussianEFT"
 "strathisla.multivariate_gaussian_scaled_covariance_eft" = "strathisla.eft:MultivariateGaussianCovarianceScaledEFT"

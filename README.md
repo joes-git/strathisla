@@ -61,7 +61,7 @@ where $\mu$ is the parameter of interest, and $\theta$ are nuisance parameters.
 
 ## `SimpleMultivariateGaussianEFT`
 
-Simple multivariate Gaussian likelihood (no nuisance parameters) for a histogram with $i$ correlated bins and two signal contributions: A term $s_{\text{lin}}$ with scales linearly with the signal strength $\mu$, and a term $s_{\text{quad}}$, which scales quadratically $\mu^2$ The form of this likelihood is:
+Simple multivariate Gaussian likelihood (no nuisance parameters) for a histogram with $i$ correlated bins and two signal contributions: A term $s_{\text{lin}}$ with scales linearly with the signal strength $\mu$, and a term $s_{\text{quad}}$, which scales with $\mu^2$. The form of this likelihood is:
 
 $$
 L(\mu) = 

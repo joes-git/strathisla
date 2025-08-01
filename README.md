@@ -1,5 +1,8 @@
 # Statisical Model Plugins for Spey
 
+[![Tests](https://github.com/joes-git/strathisla/actions/workflows/tests.yml/badge.svg)](https://github.com/joes-git/strathisla/actions/workflows/tests.yml)
+[![License](https://img.shields.io/github/license/joes-git/strathisla.svg)](https://github.com/joes-git/strathisla/blob/main/LICENSE)
+
 Various likelihood plugins for [Spey](https://github.com/SpeysideHEP/spey). The package is named after the [Strathisla](https://en.wikipedia.org/wiki/Strathisla_distillery), the Speyside distillery.
 
 Available models:

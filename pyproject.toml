@@ -3,37 +3,52 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "strathisla" 
-version = "1.0.0" 
-description = "Likelihood plugins for the Spey package"
+name = "strathisla"
+version = "1.0.0"
+description = "Statistical models for particle physics with full nuisance parameter treatment and EFT extensions for spey"
 readme = "README.md"
+license = "MIT" 
 authors = [
-    {name = "Joe Egan", email = "joe.egan.23@ucl.ac.uk"},
+    {name = "Joe Egan", email = "joseph.caimin.egan@cern.ch"}
 ]
 
-license = {text = "MIT"} 
+keywords = ["high energy physics", "statistics", "particle physics", "spey", "likelihood", "EFT", "fitting", "re-interpretation", "BSM"]
 classifiers = [
-    "Development Status :: 3 - Alpha", 
-    "Intended Audience :: Science/Researchers",
-    "License :: OSI Approved :: MIT License", 
-    "Programming Language :: Python :: 3.8", 
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    # Removed: "License :: OSI Approved :: MIT License",  # Deprecated
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.10", 
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Mathematics",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
-    "spey",
+    "spey>=0.1.11",
+    "numpy>=1.21.0",
+    "scipy>=1.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov>=2.0",
+    "black>=22.0",
+    "isort>=5.0",
+    "flake8>=4.0",
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/joes-git/strathisla"
-"Bug Reports" = "https://github.com/joes-git/strathisla/issues"
-"Source" = "https://github.com/joes-git/strathisla"
-"Documentation" = "https://github.com/joes-git/strathisla#readme"
+Homepage = "https://github.com/joes-git/strathisla"
+Repository = "https://github.com/joes-git/strathisla.git"
+Issues = "https://github.com/joes-git/strathisla/issues"
 
-[project.entry-points."spey.backend.plugins"]
+# Entry points for spey backends
+[project.entry-points."spey.backends"]
 "strathisla.full_nuisance_parameters" = "strathisla.nuisance_parameters:FullNuisanceParameters"
 "strathisla.simple_multivariate_gaussian_eft" = "strathisla.eft:SimpleMultivariateGaussianEFT"
 "strathisla.multivariate_gaussian_scaled_covariance_eft" = "strathisla.eft:MultivariateGaussianCovarianceScaledEFT"
